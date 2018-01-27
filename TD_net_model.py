@@ -145,7 +145,7 @@ def next_batch(no_data_points, batch_size):
     return list(points)
 
 
-class TDNet:
+class TDNet(object):
 
     def __init__(self, input_dims, output_dims, learning_rate = 1e-4):
         self.y = None                            # Output of the Network
@@ -235,7 +235,7 @@ class TDNet:
 class TDNet_VGG11(TDNet):
 
     def __init__(self, input_dims, output_dims, decoder_shape, vgg_file, learning_rate = 1e-4):
-        super().__init__( input_dims, output_dims, learning_rate )
+        super(TDNet_VGG11, self).__init__( input_dims, output_dims, learning_rate )
         self.vgg = None
         self.vgg_file = vgg_file
         self.decoder_shape = decoder_shape

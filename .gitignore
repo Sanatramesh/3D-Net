@@ -3,4 +3,5 @@
 .DS_Store
 data/
 model/
+*_out/
 __pycache__/

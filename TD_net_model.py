@@ -2,6 +2,7 @@ import os
 # import cv2
 import sys
 import time
+import datetime
 import argparse
 import numpy as np
 import tensorflow as tf
@@ -214,6 +215,7 @@ class TDNet(object):
         return model_loss
 
     def forward_pass(self, data):
+        left_cam_data, right_cam_data, disp_data = data
         disparity_map = self.sess.run( self.y,
                             feed_dict = {self.x_left: left_cam_data,
                                         self.x_right: right_cam_data} )
@@ -223,7 +225,7 @@ class TDNet(object):
     def save_model(self, ckpt_file):
         tf.train.Saver( tf.global_variables() ).save( self.sess, ckpt_file )
 
-    def load_model(self, ckpt_file):
+    def load_model(self, ckpt_file = None):
         if ckpt_file != None:
             tf.train.Saver().restore( self.sess, ckpt_file )
         else:
@@ -231,6 +233,7 @@ class TDNet(object):
 
     def get_name(self):
         return 'TDNet with custom encoder'
+
 
 class TDNet_VGG11(TDNet):
 
@@ -339,17 +342,37 @@ class ModelTraining:
 
 class ModelTesting:
 
-    def __init__(self, model, data_files):
+    def __init__(self, model, data_files, save_dir = 'test_out'):
         self.model = model
         self.test_data_files = data_files # List of tuple: (left_cam, right_cam, disp_map) filenames
+        self.dir_out = save_dir
 
     def test_model(self):
-        print ('Testing model:', self.model.get_name() )
-        test_data = read_data( self.test_data_files )
-        disparity_maps = self.model.forward_pass( test_data )
-        test_loss = self.model.compute_loss( test_data )
+        directory = self.dir_out + '/' + datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M')
+        os.makedirs(directory)
 
-        print ( 'Test: images: %4d loss: %4.4f' %( len( self.test_data_files ), test_loss[0] ) )
+        print ('Testing model:', self.model.get_name() )
+
+        for i, data in enumerate(self.test_data_files):
+            data = read_data( [ self.test_data_files[i] ] )
+
+            disparity_map = self.model.forward_pass( data )
+            test_loss = self.model.compute_loss( data )
+
+            # Save Disparity map
+            disparity_map = disparity_map[0]
+            h, w = disparity_map.shape[0], disparity_map.shape[1]
+            disparity_map = disparity_map.reshape((h, w))
+            fname = self.test_data_files[i][0].split('.')[0] + '_disp.png'
+            fname = fname.replace('/', '-')
+            fname = directory + '/' + fname
+            mpimg.imsave(fname, disparity_map, cmap = 'gray')
+
+            print ( 'Test: %4d image: %s loss: %4.4f' %( i, self.test_data_files[i][0] , test_loss ) )
+
+
+    def set_test_data_files(self, files):
+        self.test_data_files = files
 
 def main():
     global LEFT_CAM_DIR, RIGHT_CAM_DIR, DISPARITY_DIR
@@ -369,7 +392,7 @@ def main():
 
     print ('Test and Train split:', len(train_data_files), len(test_data_files))
 
-    train = ModelTraining(net, data_files, batch_size = 5, epochs = 50)
+    train = ModelTraining(net, train_data_files, batch_size = 5, epochs = 50)
     train.train_model()
 
 if __name__ == '__main__':

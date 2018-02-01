@@ -192,7 +192,7 @@ class TDNet(object):
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
 
     def add_loss_optimizer(self):
-        self.loss = tf.reduce_sum( tf.squared_difference( self.y, self.y_ ) )
+        self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
         self.train_step = tf.train.AdamOptimizer( self.learning_rate ).minimize( self.loss )
 
     def sess_init(self):
@@ -317,20 +317,23 @@ class ModelTraining:
         # shuffle and read a batch from the train dataset
         # train model for one epoch - call fn model.train_epoch(data)
         for i in range( self.no_epochs ):
-            batch_idx = next_batch( self.no_data, self.batch_size )
-            train_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
-            self.model.train_epoch( train_data )
-            training_loss = self.model.compute_loss( train_data )
-            data_points[batch_idx] = 1
+            data_shuffled = self.train_data_files[:]
+            shuffle(data_shuffled)
+            for batch in range( 0, self.no_data, self.batch_size ):
+                # batch_idx = next_batch( self.no_data, self.batch_size )
+                # train_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
+                # data_points[batch_idx] = 1
+                train_data = read_data( data_shuffled[ batch:batch + 5 ] )
+                self.model.train_epoch( train_data )
+                training_loss = self.model.compute_loss( train_data )
 
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
             validation_loss = self.model.compute_loss( validation_data )
 
-            print ( 'epoch(%4d/%d)    train loss: %4.4f     val loss: %4.4f' %
-                                    ( np.sum( data_points ), data_points.shape[0],
-                                    training_loss, validation_loss ) )
+            print ( 'epoch: %4d    train loss: %4.4f     val loss: %4.4f' %
+                                    ( i, training_loss, validation_loss ) )
 
             self.model.save_model( 'model/TD_net.ckpt' )
 

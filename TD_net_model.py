@@ -192,7 +192,11 @@ class TDNet(object):
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
 
     def add_loss_optimizer(self):
+<<<<<<< HEAD
         self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
+=======
+        self.loss = tf.reduce_mean(tf.reduce_sum( tf.squared_difference( self.y, self.y_ )))
+>>>>>>> e4437731059440bcd1bd9d8866139294abc21510
         self.train_step = tf.train.AdamOptimizer( self.learning_rate ).minimize( self.loss )
 
     def sess_init(self):

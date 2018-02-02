@@ -188,11 +188,11 @@ class TDNet(object):
         dec3_3 = convtranspose2d_layer( dec3_2, num_filters = 64, kernel_size = [4, 4],
                                     strides = [2, 2], padding = 'same', name = 'upsample3' )
 
-        self.y = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [1, 1],
+        self.y = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [3, 3],
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
 
     def add_loss_optimizer(self):
-        self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
+        self.loss = tf.reduce_sum( tf.squared_difference( self.y, self.y_ ) )
         self.train_step = tf.train.AdamOptimizer( self.learning_rate ).minimize( self.loss )
 
     def sess_init(self):
@@ -257,7 +257,7 @@ class TDNet_VGG11(TDNet):
         self.decoder_pl =  tf.placeholder(tf.float32, shape = self.decoder_shape)
         self.build_decoder()
 
-    def train_epoch(self, data):
+    def train_batch(self, data):
         left_cam_data, right_cam_data, disp_data = data
         # get the feature maps for left camera images
         feat_left  = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : left_cam_data} )
@@ -324,7 +324,7 @@ class ModelTraining:
                 # train_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
                 # data_points[batch_idx] = 1
                 train_data = read_data( data_shuffled[ batch:batch + 5 ] )
-                self.model.train_epoch( train_data )
+                self.model.train_batch( train_data )
                 training_loss = self.model.compute_loss( train_data )
 
             # validate the model and print test, validation accuracy
@@ -356,16 +356,22 @@ class ModelTesting:
 
         print ('Testing model:', self.model.get_name() )
 
-        for i, data in enumerate(self.test_data_files):
-            data = read_data( [ self.test_data_files[i] ] )
+        for i, data_file in enumerate(self.test_data_files):
+            data = read_data( [ data_file  ] )
 
             disparity_map = self.model.forward_pass( data )
             test_loss = self.model.compute_loss( data )
 
             # Save Disparity map
+            print ('data',data[2][0])
+            print ('disp', disparity_map[0])
             disparity_map = disparity_map[0]
             h, w = disparity_map.shape[0], disparity_map.shape[1]
             disparity_map = disparity_map.reshape((h, w))
+            plt.imshow(data[2][0].reshape((h, w)))
+            plt.show()
+            plt.imshow(disparity_map)
+            plt.show()
             fname = self.test_data_files[i][0].split('.')[0] + '_disp.png'
             fname = fname.replace('/', '-')
             fname = directory + '/' + fname

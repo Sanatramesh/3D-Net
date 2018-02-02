@@ -189,11 +189,13 @@ class TDNet(object):
         dec3_3 = convtranspose2d_layer( dec3_2, num_filters = 64, kernel_size = [4, 4],
                                     strides = [2, 2], padding = 'same', name = 'upsample3' )
 
-        self.y = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [3, 3],
+        out = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [3, 3],
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
+        out_sig = tf.nn.sigmoid(out, name = 'sigmoid')
+        self.y = tf.scalar_mul(tf.constant(255.0), out_sig)
 
     def add_loss_optimizer(self):
-        self.loss = tf.reduce_sum( tf.squared_difference( self.y, self.y_ ) )
+        self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
         self.train_step = tf.train.AdamOptimizer( self.learning_rate ).minimize( self.loss )
 
     def sess_init(self):
@@ -320,20 +322,22 @@ class ModelTraining:
         for i in range( self.no_epochs ):
             data_shuffled = self.train_data_files[:]
             shuffle(data_shuffled)
+            training_loss = 0.0
             for batch in range( 0, self.no_data, self.batch_size ):
                 # batch_idx = next_batch( self.no_data, self.batch_size )
                 # train_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
                 # data_points[batch_idx] = 1
                 train_data = read_data( data_shuffled[ batch:batch + 5 ] )
                 self.model.train_batch( train_data )
-                training_loss = self.model.compute_loss( train_data )
-
+                training_loss += self.model.compute_loss( train_data )
+            
+            training_loss /= (self.no_data // self.batch_size)
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
             validation_loss = self.model.compute_loss( validation_data )
 
-            print ( 'epoch: %4d    train loss: %4.4f     val loss: %4.4f' %
+            print ( 'epoch: %4d    train loss: %20.4f     val loss: %20.4f' %
                                     ( i, training_loss, validation_loss ) )
 
             self.model.save_model( 'model/TD_net.ckpt' )

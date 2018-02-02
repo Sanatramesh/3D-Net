@@ -8,8 +8,9 @@ import numpy as np
 import tensorflow as tf
 from random import shuffle
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+#import matplotlib.image as mpimg
 import xml.etree.ElementTree as ET
+from scipy.misc import imread, imsave
 
 import vgg16_encoder
 
@@ -44,7 +45,7 @@ def read_disparity_map(disp_file):
         d_b = f_in[:,:,2].astype('float64')
         disp_map = d_r * 4 + d_g / (2**6) + d_b / (2**14)
     else:
-        f_in = mpimg.imread(disp_file)
+        f_in = imread(disp_file)
         disp_map = f_in.astype('float64')
 
     disp_shp = disp_map.shape
@@ -53,7 +54,7 @@ def read_disparity_map(disp_file):
     return disp_map
 
 def read_img(img_file):
-    img = mpimg.imread(img_file)
+    img = imread(img_file)
     return img[:,:,:3]
 
 def get_files_in_dir(dir_path):
@@ -375,7 +376,7 @@ class ModelTesting:
             fname = self.test_data_files[i][0].split('.')[0] + '_disp.png'
             fname = fname.replace('/', '-')
             fname = directory + '/' + fname
-            mpimg.imsave(fname, disparity_map, cmap = 'gray')
+            imsave(fname, disparity_map)
 
             print ( 'Test: %4d image: %s loss: %4.4f' %( i, self.test_data_files[i][0] , test_loss ) )
 

@@ -191,7 +191,7 @@ class TDNet(object):
 
         out = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [3, 3],
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
-        self.y = relu_activation( out, name = 'relu7' ) 
+        self.y = relu_activation( out, name = 'relu7' )
 
     def add_loss_optimizer(self):
         self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
@@ -265,8 +265,8 @@ class TDNet_VGG11(TDNet):
         feat_left  = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : left_cam_data} )
         # get the feature maps for right camera images
         feat_right = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : right_cam_data} )
-        # element-wise multiplication of the feature maps
-        feature_maps = np.multiply( feat_left, feat_right )
+        # combine feature maps
+        feature_maps = self.feature_combine( feat_left, feat_right )
 
         _ = self.sess.run( self.train_step,
                             feed_dict = {self.decoder_pl: feature_maps,
@@ -278,8 +278,8 @@ class TDNet_VGG11(TDNet):
         feat_left  = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : left_cam_data} )
         # get the feature maps for right camera images
         feat_right = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : right_cam_data} )
-        # element-wise multiplication of the feature maps
-        feature_maps = np.multiply( feat_left, feat_right )
+        # combine feature maps
+        feature_maps = self.feature_combine( feat_left, feat_right )
 
         model_loss = self.sess.run( self.loss,
                             feed_dict = { self.decoder_pl: feature_maps,
@@ -292,13 +292,25 @@ class TDNet_VGG11(TDNet):
         feat_left  = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : left_cam_data} )
         # get the feature maps for right camera images
         feat_right = self.sess.run( self.vgg.pool3, feed_dict = {self.encoder_pl : right_cam_data} )
-        # element-wise multiplication of the feature maps
-        feature_maps = np.multiply( feat_left, feat_right )
+        # combine feature maps
+        feature_maps = self.feature_combine( feat_left, feat_right )
 
         disparity_map = self.sess.run( self.y,
                             feed_dict = { self.decoder_pl: feature_maps } )
 
         return disparity_map
+
+    def feature_combine(self, left_feat, right_feat):
+        # Multiply features
+        feat_combined = np.multiply( left_feat, right_feat )
+
+        # Add features
+        feat_combined = np.add( left_feat, right_feat )
+
+        # Interlay features
+        # feat_combined = np.concatenate( ( left_feat, right_feat ), axis = 2 )
+
+        return feat_combined
 
     def get_name(self):
         return 'TDNet with VGG11 encoder'
@@ -329,7 +341,7 @@ class ModelTraining:
                 train_data = read_data( data_shuffled[ batch:batch + 5 ] )
                 self.model.train_batch( train_data )
                 training_loss += self.model.compute_loss( train_data )
-            
+
             training_loss /= (self.no_data // self.batch_size)
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
@@ -339,7 +351,7 @@ class ModelTraining:
 
             print ( 'epoch: %4d    train loss: %20.4f     val loss: %20.4f' %
                                     ( i, training_loss, validation_loss ) )
-            
+
             print ('Mean:', np.mean(valid_output))
             print ('Max:', np.max(valid_output))
             print ('Min:', np.min(valid_output))

@@ -191,8 +191,7 @@ class TDNet(object):
 
         out = conv2d_layer( dec3_3, num_filters = 1, kernel_size = [3, 3],
                                     strides = [1, 1], padding = 'same', name = 'conv7' )
-        out_sig = tf.nn.sigmoid(out, name = 'sigmoid')
-        self.y = tf.scalar_mul(tf.constant(255.0), out_sig)
+        self.y = relu_activation( out, name = 'relu7' ) 
 
     def add_loss_optimizer(self):
         self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
@@ -336,10 +335,15 @@ class ModelTraining:
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
             validation_loss = self.model.compute_loss( validation_data )
+            valid_output = self.model.forward_pass(validation_data)
 
             print ( 'epoch: %4d    train loss: %20.4f     val loss: %20.4f' %
                                     ( i, training_loss, validation_loss ) )
-
+            
+            print ('Mean:', np.mean(valid_output))
+            print ('Max:', np.max(valid_output))
+            print ('Min:', np.min(valid_output))
+            print ('Unique:', np.unique(valid_output))
             self.model.save_model( 'model/TD_net.ckpt' )
 
         print ( 'Training Model: %s ... Complete' % self.model.get_name() )

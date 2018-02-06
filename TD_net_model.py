@@ -22,6 +22,7 @@ import vgg16_encoder
 DISP_FILE_TYPE = 'PNG_NTSD'
 CAM_DIR  = 'data/NTSD-200/illumination'
 DISPARITY_DIR = 'data/NTSD-200/groundtruth/disparity_maps'
+IMG_DIMS = (480, 640)
 
 def read_xml(xml_file):
     tree = ET.parse(xml_file)
@@ -301,14 +302,30 @@ class TDNet_VGG11(TDNet):
         return disparity_map
 
     def feature_combine(self, left_feat, right_feat):
+        global IMG_DIMS
+
         # Multiply features
         feat_combined = np.multiply( left_feat, right_feat )
 
         # Add features
-        feat_combined = np.add( left_feat, right_feat )
+        # feat_combined = np.add( left_feat, right_feat )
 
-        # Interlay features
-        # feat_combined = np.concatenate( ( left_feat, right_feat ), axis = 2 )
+        # Interweaving features
+        # shp = list(left_feat.shape)
+        # shp[-1] = shp[-1] * 2
+        # shp = tuple(shp)
+        #
+        # feat_combined = np.empty(shp, dtype = left_feat.dtype)
+
+        # if shp[0] == IMG_DIMS[0]:
+        #     feat_combined[:,:,0::2] = left_feat
+        #     feat_combined[:,:,1::2] = right_feat
+        # else:
+        #     feat_combined[:,:,:,0::2] = left_feat
+        #     feat_combined[:,:,:,1::2] = right_feat
+
+        # Concat features
+        # feat_combined = np.concatenate( ( left_feat, right_feat ), axis = 3 )
 
         return feat_combined
 
@@ -329,20 +346,18 @@ class ModelTraining:
         data_points = np.zeros(len(self.train_data_files))
         print ( 'Training Model: %s ... ' % self.model.get_name() )
         # shuffle and read a batch from the train dataset
-        # train model for one epoch - call fn model.train_epoch(data)
+        # train model for one epoch - call fn model.train_batch(data) for each batch
         for i in range( self.no_epochs ):
             data_shuffled = self.train_data_files[:]
             shuffle(data_shuffled)
             training_loss = 0.0
             for batch in range( 0, self.no_data, self.batch_size ):
-                # batch_idx = next_batch( self.no_data, self.batch_size )
-                # train_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
-                # data_points[batch_idx] = 1
                 train_data = read_data( data_shuffled[ batch:batch + 5 ] )
                 self.model.train_batch( train_data )
                 training_loss += self.model.compute_loss( train_data )
 
             training_loss /= (self.no_data // self.batch_size)
+
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )

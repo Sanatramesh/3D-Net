@@ -305,10 +305,12 @@ class TDNet_VGG11(TDNet):
         global IMG_DIMS
 
         # Multiply features
-        feat_combined = np.multiply( left_feat, right_feat )
+        #feat_combined = np.multiply( left_feat, right_feat )
+        #feat_combined = tf.multiply( left_feat, right_feat )
 
         # Add features
         # feat_combined = np.add( left_feat, right_feat )
+        feat_combined = self.sess.run(tf.add( left_feat, right_feat ))
 
         # Interweaving features
         # shp = list(left_feat.shape)

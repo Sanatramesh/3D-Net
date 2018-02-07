@@ -30,10 +30,10 @@ class Vgg16:
 
         start_time = time.time()
         print("build model started")
-        rgb_scaled = rgb * 255.0
+        #rgb_scaled = rgb * 255.0
 
         # Convert RGB to BGR
-        red, green, blue = tf.split(value = rgb_scaled, num_or_size_splits=3, axis = 3)
+        red, green, blue = tf.split(value = rgb, num_or_size_splits=3, axis = 3)
         assert red.get_shape().as_list()[1:] == [HEIGHT, WIDTH, 1]
         assert green.get_shape().as_list()[1:] == [HEIGHT, WIDTH, 1]
         assert blue.get_shape().as_list()[1:] == [HEIGHT, WIDTH, 1]

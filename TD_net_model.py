@@ -335,12 +335,13 @@ class TDNet_VGG11(TDNet):
 
 class ModelTraining:
 
-    def __init__(self, model, data_files, batch_size = 10, epochs = 20):
+    def __init__(self, model, data_files, batch_size = 10, epochs = 20, model_checkpoint_dir = 'model/TD_net.ckpt'):
         self.model = model
         self.train_data_files = data_files # List of tuple: (left_cam, right_cam, disp_map) filenames
         self.batch_size = batch_size
         self.no_epochs = epochs
         self.no_data = len( self.train_data_files )
+        self.model_checkpoint_dir = model_checkpoint_dir
 
     def train_model(self):
         data_points = np.zeros(len(self.train_data_files))
@@ -371,7 +372,7 @@ class ModelTraining:
             print ('Max:', np.max(valid_output))
             print ('Min:', np.min(valid_output))
             print ('Unique:', np.unique(valid_output))
-            self.model.save_model( 'model/TD_net.ckpt' )
+            self.model.save_model( self.model_checkpoint_dir )
 
         print ( 'Training Model: %s ... Complete' % self.model.get_name() )
 

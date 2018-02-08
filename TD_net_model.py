@@ -372,6 +372,7 @@ class ModelTraining:
             print ('Max:', np.max(valid_output))
             print ('Min:', np.min(valid_output))
             print ('Unique:', np.unique(valid_output))
+            print ('')
             self.model.save_model( self.model_checkpoint_dir )
 
         print ( 'Training Model: %s ... Complete' % self.model.get_name() )

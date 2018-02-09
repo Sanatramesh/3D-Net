@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 from scipy.misc import imread, imsave
 
-import vgg16_encoder
+import vgg16_encoder, vgg16_encoder2
 
 # DISP_FILE_TYPE = 'PNG_SINTEL'
 # LEFT_CAM_DIR  = 'data/MPI-Sintel-stereo-training-20150305/training/clean_left'
@@ -156,6 +156,7 @@ class TDNet(object):
         self.x_left, self.x_right = None, None       # Input left and right images
         self.feat_left, self.feat_right = None, None # Extracted features for left and right images
         self.sess = None                             # Tensorflow session
+        self.feat_cmb = None
         self.encoder_pl, self.decoder_pl = None, None
         self.loss, self.train_step = None, None
         self.input_dims = input_dims
@@ -168,6 +169,15 @@ class TDNet(object):
         encoder_pl = tf.placeholder(tf.float32, shape = encoder_shape)
 
         self.build_decoder()
+
+    def build_encoder(self):
+        pass
+
+    def feature_combine(self):
+        # Multiply features
+        self.feat_cmb = tf.multiply(self.feat_left, self.feat_right)
+        # Add features
+        self.feat_cmb = tf.add(self.feat_left, self.feat_right)
 
     def build_decoder(self):
         dec1_1 = conv2d_layer( self.decoder_pl, num_filters = 256, kernel_size = [3, 3],
@@ -305,10 +315,10 @@ class TDNet_VGG11(TDNet):
         global IMG_DIMS
 
         # Multiply features
-        #feat_combined = np.multiply( left_feat, right_feat )
+        feat_combined = np.multiply( left_feat, right_feat )
 
         # Add features
-        feat_combined = np.add( left_feat, right_feat )
+        # feat_combined = np.add( left_feat, right_feat )
 
         # Interweaving features
         # shp = list(left_feat.shape)
@@ -331,6 +341,68 @@ class TDNet_VGG11(TDNet):
 
     def get_name(self):
         return 'TDNet with VGG11 encoder'
+
+class TDNet_VGG11_V2(TDNet):
+
+    def __init__(self, input_dims, output_dims, vgg_file, learning_rate = 1e-4):
+        super(TDNet_VGG11_V2, self).__init__( input_dims, output_dims, learning_rate )
+        self.vgg = None
+        self.vgg_file = vgg_file
+
+    def build_model(self):
+        encoder_shape = [None] + self.input_dims
+        dmap_shape = [None] + self.output_dims
+
+        self.y_ = tf.placeholder(tf.float32, shape = dmap_shape)
+        self.x_left  = tf.placeholder(tf.float32, shape = encoder_shape)
+        self.x_right = tf.placeholder(tf.float32, shape = encoder_shape)
+
+        self.vgg = vgg16_encoder2.Vgg16( self.vgg_file )
+        with tf.name_scope( "content_vgg" ):
+            self.vgg.build( self.x_left, self.x_right )
+
+        self.feature_combine()
+        self.decoder_pl = self.feat_cmb
+        self.build_decoder()
+
+    def feature_combine(self):
+        # Multiply features
+        # self.feat_cmb = tf.multiply(self.vgg.pool3_l, self.vgg.pool3_r)
+
+        # Add features
+        self.feat_cmb = tf.add(self.vgg.pool3_l, self.vgg.pool3_r)
+
+        # Concat features
+        # self.feat_cmb = tf.concat([self.vgg.pool3_l, self.vgg.pool3_r], axis = 3)
+
+    def train_batch(self, data):
+        left_cam_data, right_cam_data, disp_data = data
+
+        _ = self.sess.run( self.train_step,
+                            feed_dict = {self.x_left: left_cam_data,
+                                        self.x_right: right_cam_data,
+                                        self.y_: disp_data} )
+
+    def compute_loss(self, data):
+        left_cam_data, right_cam_data, disp_data = data
+
+        model_loss = self.sess.run( self.loss,
+                            feed_dict = {self.x_left: left_cam_data,
+                                        self.x_right: right_cam_data,
+                                        self.y_: disp_data} )
+        return model_loss
+
+    def forward_pass(self, data):
+        left_cam_data, right_cam_data, disp_data = data
+
+        disparity_map = self.sess.run( self.y,
+                            feed_dict = {self.x_left: left_cam_data,
+                                        self.x_right: right_cam_data} )
+
+        return disparity_map
+
+    def get_name(self):
+        return 'TDNet with VGG11 encoder V2'
 
 
 class ModelTraining:
@@ -357,13 +429,13 @@ class ModelTraining:
                 self.model.train_batch( train_data )
                 training_loss += self.model.compute_loss( train_data )
                 #print("Batch no. : ",batch)
-            training_loss /= (self.no_data // self.batch_size)
+            training_loss /= ( self.no_data // self.batch_size )
 
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
             validation_loss = self.model.compute_loss( validation_data )
-            valid_output = self.model.forward_pass(validation_data)
+            valid_output = self.model.forward_pass( validation_data )
 
             print ( 'epoch: %4d    train loss: %20.4f     val loss: %20.4f' %
                                     ( i, training_loss, validation_loss ) )

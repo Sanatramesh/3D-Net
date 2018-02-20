@@ -319,7 +319,7 @@ class TDNet_VGG11(TDNet):
 
         # Add features
         # feat_combined = np.add( left_feat, right_feat )
-        
+
         # Subtract features
         feat_combined = np.subtract( left_feat, right_feat )
 
@@ -428,7 +428,7 @@ class ModelTraining:
             shuffle(data_shuffled)
             training_loss = 0.0
             for batch in range( 0, self.no_data, self.batch_size ):
-                train_data = read_data( data_shuffled[ batch:batch + 5 ] )
+                train_data = read_data( data_shuffled[ batch:batch + self.batch_size ] )
                 self.model.train_batch( train_data )
                 training_loss += self.model.compute_loss( train_data )
                 #print("Batch no. : ",batch)

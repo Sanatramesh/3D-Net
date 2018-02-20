@@ -133,47 +133,46 @@ class TDNet_VGG11_Model(th.nn.Module):
     def __init__(self, freeze_encoder = True):
         super(TDNet_VGG11_Model, self).__init__()
         self.vgg_encoder = th.nn.Sequential(
-                            th.nn.Conv2d(3, 64, 3),
+                            th.nn.Conv2d(3, 64, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.Conv2d(64, 64, 3),
+                            th.nn.Conv2d(64, 64, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.MaxPool2d(64, 2),
+                            th.nn.MaxPool2d(2, stride = 2),
 
-                            th.nn.Conv2d(64, 128, 3),
+                            th.nn.Conv2d(64, 128, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.Conv2d(128, 128, 3),
+                            th.nn.Conv2d(128, 128, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.MaxPool2d(128, 2),
+                            th.nn.MaxPool2d(2, stride = 2),
 
-                            th.nn.Conv2d(128, 256, 3),
+                            th.nn.Conv2d(128, 256, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.Conv2d(256, 256, 3),
+                            th.nn.Conv2d(256, 256, 3, padding = 1),
                             th.nn.ReLU(),
-                            th.nn.MaxPool2d(256, 2)
+                            th.nn.MaxPool2d(2, stride = 2)
                     )
 
         state_dict = model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth')
         self.vgg_encoder.load_state_dict(state_dict, strict = False)
 
-        # self.vgg_encoder.load_state_dict(model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth'))
         if freeze_encoder:
             for param in self.vgg_encoder.parameters():
                 param.requires_grad = False
 
         self.decoder = th.nn.Sequential(
-                        th.nn.Conv2d(256, 256, 3),
+                        th.nn.Conv2d(256, 256, 3, padding = 1),
                         th.nn.ReLU(),
-                        th.nn.ConvTranspose2d(256, 256, 4, stride=2),
+                        th.nn.ConvTranspose2d(256, 256, 4, stride = 2, padding = 1),
 
-                        th.nn.Conv2d(256, 128, 3),
+                        th.nn.Conv2d(256, 128, 3, padding = 1),
                         th.nn.ReLU(),
-                        th.nn.ConvTranspose2d(128, 128, 4, stride=2),
+                        th.nn.ConvTranspose2d(128, 128, 4, stride = 2, padding = 1),
 
-                        th.nn.Conv2d(128, 64, 3),
+                        th.nn.Conv2d(128, 64, 3, padding = 1),
                         th.nn.ReLU(),
-                        th.nn.ConvTranspose2d(64, 64, 4, stride=2),
+                        th.nn.ConvTranspose2d(64, 64, 4, stride = 2, padding = 1),
 
-                        th.nn.Conv2d(64, 1, 3),
+                        th.nn.Conv2d(64, 1, 3, padding = 1),
                         th.nn.ReLU()
                     )
 
@@ -202,7 +201,7 @@ class TDNet(object):
 
     def build_model(self):
         self.model = TDNet_VGG11_Model()
-
+        print (self.model)
     def loss_func(self, y, y_):
         loss = th.mean((y - y_) ** 2)
         return loss
@@ -216,8 +215,8 @@ class TDNet(object):
                                                     th.autograd.Variable(th.FloatTensor(right_cam_data)), \
                                                     th.autograd.Variable(th.FloatTensor(disp_data))
 
-        print (left_cam_data.shape, right_cam_data.shape, disp_data.shape)
         y = self.model.forward( left_cam_data, right_cam_data )
+        print (y.shape, disp_data.shape)
         loss = self.loss_func( y, disp_data )
 
         self.optimizer.zero_grad()
@@ -249,11 +248,12 @@ class TDNet(object):
         return disparity_map
 
     def save_model(self, ckpt_file):
-        th.save( self.model, ckpt_file )
+        # th.save( self.model, ckpt_file )
+        self.model.save_state_dict(ckpt_file)
 
     def load_model(self, ckpt_file = None):
         if ckpt_file != None:
-            th.load( ckpt_file )
+            self.model.load_state_dict(th.load(ckpt_file))
 
     def get_name(self):
         return self.model.get_name()
@@ -261,7 +261,7 @@ class TDNet(object):
 
 class ModelTraining:
 
-    def __init__(self, model, data_files, batch_size = 10, epochs = 20, model_checkpoint_dir = 'model/TD_net.ckpt'):
+    def __init__(self, model, data_files, batch_size = 10, epochs = 20, model_checkpoint_dir = 'model/TD_net.pt'):
         self.model = model
         self.train_data_files = data_files # List of tuple: (left_cam, right_cam, disp_map) filenames
         self.batch_size = batch_size
@@ -278,13 +278,15 @@ class ModelTraining:
             data_shuffled = self.train_data_files[:]
             shuffle(data_shuffled)
             training_loss = 0.0
+
             for batch in range( 0, self.no_data, self.batch_size ):
                 print (batch,)
-                train_data = read_data( data_shuffled[ batch:batch + 5 ] )
+                train_data = read_data( data_shuffled[ batch:batch + self.batch_size ] )
                 training_loss += self.model.train_batch( train_data )
-                #print("Batch no. : ",batch)
+
             training_loss /= ( self.no_data // self.batch_size )
             print ()
+
             # validate the model and print test, validation accuracy
             batch_idx = next_batch( self.no_data, self.batch_size )
             validation_data = read_data( [ self.train_data_files[ idx ] for idx in batch_idx ] )
@@ -364,7 +366,7 @@ def main():
 
     print ('Test and Train split:', len(train_data_files), len(test_data_files))
 
-    train = ModelTraining(net, train_data_files, batch_size = 5, epochs = 50)
+    train = ModelTraining(net, train_data_files, batch_size = 1, epochs = 10)
     train.train_model()
 
 if __name__ == '__main__':

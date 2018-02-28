@@ -373,7 +373,10 @@ class TDNet_VGG11_V2(TDNet):
         # self.feat_cmb = tf.multiply(self.vgg.pool3_l, self.vgg.pool3_r)
 
         # Add features
-        self.feat_cmb = tf.add(self.vgg.pool3_l, self.vgg.pool3_r)
+        #self.feat_cmb = tf.add(self.vgg.pool3_l, self.vgg.pool3_r)
+
+        # Subtract features
+        self.feat_cmb = tf.subtract(self.vgg.pool3_l, self.vgg.pool3_r)
 
         # Concat features
         # self.feat_cmb = tf.concat([self.vgg.pool3_l, self.vgg.pool3_r], axis = 3)

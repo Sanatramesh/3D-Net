@@ -499,7 +499,8 @@ class ModelTesting:
 def main():
     global LEFT_CAM_DIR, RIGHT_CAM_DIR, DISPARITY_DIR
 
-    net = TDNet_VGG11([480, 640, 3], [480, 640, 1], [60, 80, 256], 'data/vgg16.npy', learning_rate = 1e-4)
+    #net = TDNet_VGG11([480, 640, 3], [480, 640, 1], [60, 80, 256], 'data/vgg16.npy', learning_rate = 1e-4)
+    net = TDNet_VGG11_V2([480, 640, 3], [480, 640, 1], 'data/vgg16.npy', learning_rate = 1e-4)
     net.build_model()
     net.add_loss_optimizer()
     net.sess_init()

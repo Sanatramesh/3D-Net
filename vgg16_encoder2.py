@@ -126,7 +126,9 @@ class Vgg16:
             return relu
 
     def get_conv_filter(self, name):
-        return tf.constant(self.data_dict[name][0], name="filter")
+        #return tf.constant(self.data_dict[name][0], name="filter")
+        return tf.Variable(self.data_dict[name][0], name="filter")
 
     def get_bias(self, name):
-        return tf.constant(self.data_dict[name][1], name="biases")
+        #return tf.constant(self.data_dict[name][1], name="biases")
+        return tf.Variable(self.data_dict[name][1], name="biases")

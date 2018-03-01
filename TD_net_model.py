@@ -20,8 +20,8 @@ import vgg16_encoder, vgg16_encoder2
 # DISPARITY_DIR = 'data/MPI-Sintel-stereo-training-20150305/training/disparities'
 
 DISP_FILE_TYPE = 'PNG_NTSD'
-CAM_DIR  = 'data/NTSD-200/illumination'
-DISPARITY_DIR = 'data/NTSD-200/groundtruth/disparity_maps'
+CAM_DIR  = 'data/NTSD_complete/illumination'
+DISPARITY_DIR = 'data/NTSD_complete/groundtruth/disparity_maps'
 IMG_DIMS = (480, 640)
 
 def read_xml(xml_file):

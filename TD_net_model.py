@@ -20,8 +20,8 @@ import vgg16_encoder, vgg16_encoder2
 # DISPARITY_DIR = 'data/MPI-Sintel-stereo-training-20150305/training/disparities'
 
 DISP_FILE_TYPE = 'PNG_NTSD'
-CAM_DIR  = 'data/NTSD-200/illumination'
-DISPARITY_DIR = 'data/NTSD-200/groundtruth/disparity_maps'
+CAM_DIR  = 'data/NTSD_complete/illumination'
+DISPARITY_DIR = 'data/NTSD_complete/groundtruth/disparity_maps'
 IMG_DIMS = (480, 640)
 
 def read_xml(xml_file):
@@ -385,7 +385,10 @@ class TDNet_VGG11_V2(TDNet):
         # self.feat_cmb = tf.multiply(self.vgg.pool3_l, self.vgg.pool3_r)
 
         # Add features
-        self.feat_cmb = tf.add(self.vgg.pool3_l, self.vgg.pool3_r)
+        #self.feat_cmb = tf.add(self.vgg.pool3_l, self.vgg.pool3_r)
+
+        # Subtract features
+        self.feat_cmb = tf.subtract(self.vgg.pool3_l, self.vgg.pool3_r)
 
         # Concat features
         # self.feat_cmb = tf.concat([self.vgg.pool3_l, self.vgg.pool3_r], axis = 3)
@@ -511,7 +514,8 @@ class ModelTesting:
 def main():
     global LEFT_CAM_DIR, RIGHT_CAM_DIR, DISPARITY_DIR
 
-    net = TDNet_VGG11([480, 640, 3], [480, 640, 1], [60, 80, 256], 'data/vgg16.npy', learning_rate = 1e-4)
+    #net = TDNet_VGG11([480, 640, 3], [480, 640, 1], [60, 80, 256], 'data/vgg16.npy', learning_rate = 1e-4)
+    net = TDNet_VGG11_V2([480, 640, 3], [480, 640, 1], 'data/vgg16.npy', learning_rate = 1e-4)
     net.build_model()
     net.add_loss_optimizer()
     net.sess_init()

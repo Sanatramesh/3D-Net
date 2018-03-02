@@ -205,7 +205,19 @@ class TDNet(object):
         self.y = relu_activation( out, name = 'relu7' )
 
     def add_loss_optimizer(self):
+        filtx = tf.constant(np.array([[0,0,0],[-0.5,0,0.5], [0,0,0]], dtype = np.float32).reshape((3,3,1,1)), name="filter")
+        # filty = tf.constant(np.array([[0,-0.5,0],[0,0,0], [0,0.5,0]], dtype = np.float32).reshape((3,3,1,1)), name="filter")
+        filty = tf.transpose(filtx, [1, 0, 2, 3])
+
+        dyx  = tf.nn.conv2d(self.y, filtx, [1, 1, 1, 1], padding='SAME')
+        dyy  = tf.nn.conv2d(self.y, filty, [1, 1, 1, 1], padding='SAME')
+
+        dy_x  = tf.nn.conv2d(self.y_, filtx, [1, 1, 1, 1], padding='SAME')
+        dy_y  = tf.nn.conv2d(self.y_, filty, [1, 1, 1, 1], padding='SAME')
+
         self.loss = tf.reduce_mean( tf.squared_difference( self.y, self.y_ ) )
+        self.loss += tf.reduce_sum( tf.squared_difference( dyx, dy_x ) )
+        self.loss += tf.reduce_sum( tf.squared_difference( dyy, dy_y ) )
         self.train_step = tf.train.AdamOptimizer( self.learning_rate ).minimize( self.loss )
 
     def sess_init(self):
